@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>My first Three.js app</title>
+		<style>
+			*{ margin: 0; padding: 0;}
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="./js/three.js"></script>
+		<script>
+            /* 
+                three.js的三大组件----相机(camera)/渲染器(renderer)/场景(scene)
+                场景---用来容纳图形元素,包含所有需要显示的3D物体以及其他相关元素的容器.
+                摄像机---决定3D场景如何投影到2D画布上,定义可视区域,确定哪些图形元素是可见的
+                渲染器--- 用于负责渲染出图像
+             */
+            var scene = new THREE.Scene();
+            //threeJS中有几个不同的相机,erspectiveCamera也就是类似于人呀观察的方式
+            /* 
+                第一属性---75设置的是视角(field of view)
+                第二属性---设置的是相机拍摄面的长宽比(aspect ratio).我们基本上使用的元素的宽除以高,否则会出现挤压变形
+                剩余两个属性是近剪裁平面和远剪裁平面---这意味着距离摄像机这两个距离以外的元素将不会被渲染在视图中
+            */
+           //相机
+            var camera = new THREE.PerspectiveCamera(90,window.innerWidth/window.innerHeight,0.1,1000);
+            //渲染器
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth,window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            //创建立方体,需要盒子模型(BoxGeometry)
+            //three.JS提供了很多其他的几何体模型
+            /* 
+            圆形（CircleGeometry）、柱体（CylinderGeometry）、球体（SphereGeometry）、文字（TextGeometry）等
+            */
+           /* 
+           参数:
+                BoxGeometry(width, height, dept, widthSegments, heightSegments, depthSegments) 
+            - width,height,dept分别是长宽高 
+            -widthSegments, heightSegments, deptSegments是对应长宽高的分段
+           */
+            var geometry = new THREE.BoxGeometry(1,1,1);
+            //控制填充的颜色
+            var material = new THREE.MeshBasicMaterial({color:'#FF0005'});
+            var cube = new THREE.Mesh(geometry,material);
+            scene.add(cube);
+
+            
+
+            //摄像机Z轴的距离,相当于视角针对于元素的远近
+            camera.position.z = 5;
+
+            //这是一个函数
+            var render = function () {
+                //元素几何体x粥与y轴每次移动0.01
+				cube.rotation.y += 0.01;
+                cube.rotation.x += 0.01;
+                //渲染器渲染场景和摄像机
+                renderer.render(scene, camera);
+                //启动渲染循环,可以形成元素的旋转效果
+				requestAnimationFrame( render );
+			};
+
+			render();
+		</script>
+	</body>
+</html>
