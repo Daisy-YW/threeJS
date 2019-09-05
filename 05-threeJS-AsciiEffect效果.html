@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>My first Three.js app</title>
+		<style>
+			*{ margin: 0; padding: 0;}
+			canvas { width: 100%; height: 100% }
+        </style>
+        <script src="./js/three.js"></script>
+        <script src="./js/jquery-1.9.1.js"></script>
+        <!-- 引入插件-界面组件 -->
+        <!-- dat.GUI 是一个轻量级的图形用户界面库（GUI 组件），使用这个库可以很容易地创建出能够改变代码变量的界面组件。 -->
+        <script src="./js/dat.gui.min.js"></script>
+        <script src="./js/asciiEffect.js"></script>
+	</head>
+	<body>
+        <div id="WebGL_output"></div>
+       
+		<script>
+            $(function(){
+                //场景
+                var scene = new THREE.Scene();
+                //摄像机
+                var camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,10000);
+                //渲染器
+                var renderer = new THREE.WebGLRenderer();
+                //渲染器背景色
+                renderer.setClearColor(0xeeeeee);
+                //渲染器尺寸
+                renderer.setSize(window.innerWidth,window.innerHeight);
+                //渲染器允许阴影映射渲染
+                renderer.shadowMap.enabled = true;
+                //WebGLRenderer是默认开启支持阴影效果。
+                renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+                //轴
+                var axes = new THREE.AxesHelper(20);
+                scene.add(axes)
+
+
+
+                //添加平面
+                var planeGeomety = new THREE.PlaneGeometry(60,20,1,1);
+                // var planeMaterial = new THREE.MeshBasicMaterial({color:0xcccccc});
+                //修改物体材质
+                var planeMaterial = new THREE.MeshLambertMaterial({color:0xcccccc});
+                var plane = new THREE.Mesh(planeGeomety,planeMaterial);
+                //平面x轴旋转
+                plane.rotation.x = -0.5*Math.PI;
+                //平面x、y、z轴的定位
+                plane.position.x = 15;
+                plane.position.y = 0;
+                plane.position.z = 0;
+                //receiveShadow   平面允许接收阴影
+                plane.receiveShadow = true;
+
+                scene.add(plane);
+
+
+                //添加立方体盒模型
+                var cubeGeomety = new THREE.CubeGeometry(4,4,4);
+                //wireframe控制物体线模式
+                // var cubeMeterial = new THREE.MeshBasicMaterial({color:0xff0000,wireframe: true});
+                var cubeMeterial = new THREE.MeshLambertMaterial({color:0xff0000});
+                var cube = new THREE.Mesh(cubeGeomety,cubeMeterial);
+                //盒模型的x、y、z轴的定位
+                cube.position.x = -4;
+                cube.position.y = 3;
+                cube.position.z = 0;
+                //立方体投射阴影
+                cube.castShadow  = true;
+                //场景中添加立方体
+                scene.add(cube);
+
+
+                //添加球体
+                var sphereGeometry = new THREE.SphereGeometry(4,20,20);
+                // var sphereMaterial = new THREE.MeshLambertMaterial({color:0x7777ff,wireframe: true});
+                var sphereMaterial = new THREE.MeshLambertMaterial({color:0x7777ff});
+                var sphere = new THREE.Mesh(sphereGeometry,sphereMaterial);
+                //球体模型的x、y、z轴的定位
+                sphere.position.x = 20;
+                sphere.position.y = 4;
+                sphere.position.z = 2;
+                //球体模型投射阴影
+                sphere.castShadow = true;
+                //在场景中添加球体模型
+                scene.add(sphere);
+
+
+                //配置摄像头位置
+                camera.position.x = -30;
+                camera.position.y = 40;
+                camera.position.z = 30;
+                camera.lookAt(scene.position);
+
+                //增加光源
+                var spotLight = new THREE.SpotLight(0xffffff);
+                spotLight.position.set(-10,25,-10);
+                spotLight.castShadow = true;
+                //设置阴影分辨率
+                spotLight.shadow.mapSize.width = 2048;
+                spotLight.shadow.mapSize.height = 2048;
+                scene.add(spotLight);
+                //在添加光源之后,我们也要同时修改物体的材质
+                // 不同的材质对光源的反应并不相同，前面我们给物体使用的MeshBasicMaterial是基础材质，不会对光源产生反应，所以在这里我们要修改plane、cube以及sphere的材质
+
+                //修改完物体材质之后,物体虽然对光产生了光阴面,但是还是缺少了一样东西----物体的阴影
+                //我们要设置以下几处地方
+                //renderer.shadowMapEnabled = true;   渲染器允许阴影映射渲染
+                //mesh代表物体
+                // Mesh.castShadow = true;//开启投影
+                // Mesh.receiveShadow = true;//接收阴影
+                //物体以及光线需要开启投影,而plane需要接收阴影
+
+                //此时的阴影存在很严重的锯齿影响 , 需要调整阴影分辨率
+
+                // $("#WebGL_output").append(renderer.domElement);
+
+                //将画面风格转换为ASCII效果(文本画),需要引入asciiEffect.js
+                
+                var effect = new THREE.AsciiEffect( renderer );
+                effect.setSize( window.innerWidth,window.innerHeight );
+                $("#WebGL_output").append(effect.domElement);
+
+
+
+                //定义组件内容
+                // 利用组件控制物体的旋转速度,可以通过一个对象来设置它的属性, 以便我们利用组件来调控
+                var controls = new function(){
+                    // 旋转速度
+                    this.rotationSpeed = 0.02;
+                    // 弹跳速度
+                    this.bouncingSpped = 0.03;
+                }
+
+                var gui = new dat.GUI();
+                gui.add(controls,'rotationSpeed',0,0.5);
+                gui.add(controls,'bouncingSpped',0,0.5);
+
+                //声明速度
+                var step = 0;
+               
+                // renderer.render(scene,camera);
+                //  这是一个函数   ---  给盒模型加上动画
+                var render = function () {
+                    //元素几何体x粥与y轴每次移动0.01
+                    cube.rotation.y += controls.rotationSpeed;
+                    cube.rotation.x += controls.rotationSpeed;
+                    cube.rotation.z += controls.rotationSpeed;
+
+                    // 球体弹跳效果
+                    // 定义球的速度
+                    // step += 0.04;
+                    step += controls.bouncingSpped;
+                    // 设定球体在x轴和y轴上的运行轨迹
+                    sphere.position.x = 20+(10*(Math.cos(step)));
+                    sphere.position.y = 2 +(10*Math.abs(Math.sin(step)));
+
+                    //渲染器渲染场景和摄像机
+                    effect.render(scene, camera);
+                    //启动渲染循环,可以形成元素的旋转效果
+                    requestAnimationFrame( render );
+                };
+
+                render();
+            })
+		</script>
+	</body>
+</html>
