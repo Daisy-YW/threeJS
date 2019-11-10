@@ -12,13 +12,16 @@
         <!-- 引入插件-界面组件 -->
         <!-- dat.GUI 是一个轻量级的图形用户界面库（GUI 组件），使用这个库可以很容易地创建出能够改变代码变量的界面组件。 -->
         <script src="./js/dat.gui.min.js"></script>
-        <script src="./js/asciiEffect.js"></script>
+        <script type="text/javascript" src="./js/stats.min.js"></script>
 	</head>
 	<body>
         <div id="WebGL_output"></div>
+        <div id="Stats-output">
+            </div>
        
 		<script>
             $(function(){
+                var stats = initStats();
                 //场景
                 var scene = new THREE.Scene();
                 //摄像机
@@ -115,19 +118,8 @@
 
                 //此时的阴影存在很严重的锯齿影响 , 需要调整阴影分辨率
 
+                $("#WebGL_output").append(renderer.domElement);
 
-
-
-                // $("#WebGL_output").append(renderer.domElement);
-
-                //将画面风格转换为ASCII效果(文本画),需要引入asciiEffect.js
-                
-                //利用ASCII改编渲染器中原本的效果
-                var effect = new THREE.AsciiEffect( renderer );
-                // ASCII渲染效果的尺寸是浏览器的尺寸
-                effect.setSize( window.innerWidth,window.innerHeight );
-                // 在#WebGL_output中渲染改编为ASCII效果的DOM节点
-                $("#WebGL_output").append(effect.domElement);
 
 
 
@@ -150,6 +142,7 @@
                 // renderer.render(scene,camera);
                 //  这是一个函数   ---  给盒模型加上动画
                 var render = function () {
+                     stats.update();
                     //元素几何体x粥与y轴每次移动0.01
                     cube.rotation.y += controls.rotationSpeed;
                     cube.rotation.x += controls.rotationSpeed;
@@ -163,15 +156,24 @@
                     sphere.position.x = 20+(10*(Math.cos(step)));
                     sphere.position.y = 2 +(10*Math.abs(Math.sin(step)));
 
-                    //原先正常渲染的效果
-                    // renderer.render(scene, camera);
-                    //渲染改编后的ASCII效果
-                    effect.render(scene, camera);
+                    //渲染器渲染场景和摄像机
+                    renderer.render(scene, camera);
                     //启动渲染循环,可以形成元素的旋转效果
                     requestAnimationFrame( render );
                 };
 
                 render();
+
+                function initStats() {
+                    var stats = new Stats();
+                    stats.setMode(0); // 0: fps, 1: ms
+                    // Align top-left
+                    stats.domElement.style.position = 'absolute';
+                    stats.domElement.style.left = '0px';
+                    stats.domElement.style.top = '0px';
+                    document.getElementById("Stats-output").appendChild(stats.domElement);
+                    return stats;
+                }
             })
 		</script>
 	</body>

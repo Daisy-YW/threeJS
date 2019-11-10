@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="./js/three.js"></script>
+    <!-- 浏览器控制台插件 -->
+    <script src="./js/dat.gui.min.js"></script>
+    <!-- 检测性能插件 -->
+    <script src="./js/stats.min.js"></script>
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <!-- 控制台 -->
+    <div id="Stats-output">
+    </div>
+    <!-- 场景画面 -->
+    <div id="WebGL-output">
+    </div>
+    <script  type="text/javascript">
+        window.onload = function (){
+            // var stats = initStats();
+            //设置场景,摄像机以及渲染器
+            //场景
+            var scene = new THREE.Scene();
+            // 雾化颜色,雾化近处属性值, 远处值 --- 可以设置雾化的范围
+            scene.fog = new THREE.Fog(0xffffff,45,80);
+            // 也可以不加
+            // scene.fog = new THREE.Fog(0xffffff);
+
+            //摄像头
+            var camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
+            scene.add(camera)
+            camera.position.x = -30;
+            camera.position.y = 40;
+            camera.position.z = 30;
+            camera.lookAt(scene.position);
+
+            //渲染器
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setClearColor(new THREE.Color(0xeeeeee,1.0));
+            renderer.setSize(window.innerWidth,window.innerHeight);
+            // renderer.shadowMap.enabled = true;
+            renderer.shadowMap.enabled = true;
+
+            //设置平面
+            var planeGeometry = new THREE.PlaneGeometry(60,40,1,1);
+            var planeMaterial = new THREE.MeshLambertMaterial({color:0xffffff});
+            var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+            plane.receiveShadow = true;
+
+            plane.rotation.x = -0.5 * Math.PI;
+            plane.position.x = 0;
+            plane.position.y = 0;
+            plane.position.z = 0;
+
+            scene.add(plane);
+
+
+            //环光源
+            //在创建 THREE.AmbientLight 时，颜色会应用到全局。
+            // 该光源并没有特别的来源方向，并且 THREE.AmbientLight 不会产生阴影。
+            // 通常，不能将 THREE.AmbientLight 作为场景中唯一的光源，因为它会将场景中的所有物体渲染为相同的颜色，而不管是什么形状。
+            // 在使用其他光源（如 THREE.SpotLight 或者 THREE.DirectionLight）的同时使用它，目的是弱化阴影或给场景添加一些额外的颜色
+            var ambientLight = new THREE.AmbientLight(0x0c0c0c);
+            scene.add(ambientLight);  
+            
+            var spotLight = new THREE.SpotLight(0xffffff);
+            spotLight.position.set(-40, 60, -10);
+            spotLight.castShadow = true;
+            //设置阴影分辨率
+            spotLight.shadow.mapSize.width = 3000;
+            spotLight.shadow.mapSize.height = 3000;  
+            scene.add(spotLight);
+
+            // renderer.render(scene, camera);
+
+            document.getElementById("WebGL-output").appendChild(renderer.domElement);
+
+
+            //设置速度
+            var step = 0;
+            //设置GUI的相关内容
+            var controls = new function(){
+                //旋转速度
+                this.rotationSeep = 0.02;
+                //获取场景中的盒子模型数量
+                this.numberOfObjects = scene.children.length;
+
+                //设置删除子元素的函数
+                this.removeCube = function(){
+                    var allChildren = scene.children;
+                    var lastObject = allChildren[allChildren.length-1];
+                    if(lastObject instanceof THREE.Mesh){
+                        scene.remove(lastObject);
+                        this.numberOfObjects = scene.children.length;
+                    }
+                }
+                
+                //添加元素
+                this.addCube = function(){
+                    var cubeSize = Math.ceil((Math.random()*3));
+                    var cubeGeometry = new THREE.BoxGeometry(cubeSize,cubeSize,cubeSize);
+                    var cubeMaterial = new THREE.MeshLambertMaterial({color:Math.random()* 0xffffff});
+                    var cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
+                    // 盒子接收阴影
+                    cube.castShadow = true;
+                    // 盒子名称
+                    cube.name = "cube" + scene.children.length;
+
+                    //生成盒子模型的位置
+                    cube.position.x = -30 + Math.round((Math.random()* planeGeometry.parameters.width));
+                    cube.position.y = Math.round((Math.random()* 5));
+                    cube.position.z = -20 + Math.round((Math.random()* planeGeometry.parameters.height));
+
+                    //视图中添加cube
+                    scene.add(cube);
+                    //重新刷新盒子模型的数量
+                    this.numberOfObjects = scene.children.length;
+                }
+                this.outputObjects = function(){
+                    console.log(scene.children);
+                }
+            }
+
+            //在视图中插入Gui插件
+            var gui = new dat.GUI();
+            gui.add(controls,"rotationSeep",0,0.5);
+            gui.add(controls,'addCube');
+            gui.add(controls,'removeCube');
+            gui.add(controls,'outputObjects');
+            gui.add(controls,'numberOfObjects').listen();
+    
+            //渲染render
+            render()
+
+            function render(){
+                // stats.update();
+                scene.traverse(function(e){
+                    if(e instanceof THREE.Mesh && e != plane){
+                        e.rotation.x += controls.rotationSeep;
+                        e.rotation.y += controls.rotationSeep;
+                        e.rotation.z += controls.rotationSeep;
+                    }
+                })
+                requestAnimationFrame(render)
+                renderer.render(scene,camera)
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>three.js 光阴</title>
+    <style>
+        body{
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+    <script src="./js/three.js"></script>
+    <script src="./js/jquery-1.9.1.js"></script>
+    <script src="./js/dat.gui.min.js"></script>
+    <script src="./js/stats.min.js"></script>
+    <script src="./js/controls/TrackballControls.js"></script>
+</head>
+<body>
+
+<div id="WebGL-output"></div>
+<div id="Stats-output"></div>
+
+<script>
+
+    $(function () {
+        // 初始化性能插件
+        var stats = initStats();
+        // 创建场景
+        var scene = new THREE.Scene();
+        // 创建相机--透视相机
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
+        // 创建WebGl渲染器
+        var webGlRenderer = new THREE.WebGLRenderer();
+
+        // 配置渲染器
+        webGlRenderer.antialias = true;// 抗锯齿
+        webGlRenderer.autoClear = true;// 自动清除
+        webGlRenderer.setClearColor( 0x050505 );// 渲染背景色
+        webGlRenderer.setSize( window.innerWidth, window.innerHeight);// 渲染范围
+
+        // 配置相机
+        camera.position.set(0, 400, 800);// 相机在三维空间的位置
+        camera.lookAt(new THREE.Vector3(0, 0, 0));// 相机看向空间坐标原点
+
+        // 创建立方体
+        var cubeGeometry = new THREE.CubeGeometry(100, 100, 100);// 立方体模型
+        var cubeMaterial = new THREE.MeshLambertMaterial({color : Math.random() * 0xffffff});// 立方体材质,颜色为随机色
+        var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);// 创建网格实例
+        cube.position.y = 90;// 立方体的 y 坐标 +90
+        // 将立方体加入场景
+        scene.add(cube);
+
+        // 创建光源 ambientLight:环境光、directionalLight:平行光
+        var ambientLight = new THREE.AmbientLight( 0x404040 );
+        var directionalLight1 = new THREE.DirectionalLight( 0xC0C090 );
+        var directionalLight2 = new THREE.DirectionalLight( 0xC0C090 );
+        // 设置光源的位置
+        directionalLight1.position.set(-300, -400, 300);
+        directionalLight2.position.set(300, 400, -300);
+        // 将光源加入场景
+        scene.add(ambientLight);
+        scene.add(directionalLight1);
+        scene.add(directionalLight2);
+
+        // 创建网格辅助
+        var gridHelper = new THREE.GridHelper(1200, 50, 0xFF4444, 0x404040 );
+        scene.add( gridHelper );
+
+        // 创建轨迹球控件
+        var trackballControls = new THREE.TrackballControls(camera, webGlRenderer.domElement);
+
+        // 加入图形调试控件中的组件 gui
+        var controls = new function () {
+            this.rotationSpeed = 0.02;
+            this.wireframe = cubeMaterial.wireframe;
+            this.color = cubeMaterial.color.getStyle();
+            this.gridHelper = false;
+            this.backGround = webGlRenderer.getClearColor().getHex();
+        }
+        // 创建图形调试控件
+        var gui = new dat.GUI();
+
+        // 创建 helperGui 目录,下面包含 gridHelper 组件
+        var helperGui = gui.addFolder('Helper');
+        helperGui.add(controls,'gridHelper').onChange(function (e) {
+            console.log(e);
+            if (e){
+                scene.remove(gridHelper);
+            }else{
+                scene.add(gridHelper);
+            }
+        });
+
+        // 创建 meshGui 目录, 目录下包含组件 wireframe、color、rotationSpeed
+        var meshGui = gui.addFolder("Mesh");
+        meshGui.add(controls,'wireframe').onChange(function (e) {
+            cubeMaterial.wireframe = e;
+        });
+        meshGui.addColor(controls,'color').onChange(function (e) {
+            cubeMaterial.color.setStyle(e);
+        })
+        meshGui.add(controls,'rotationSpeed',0, 0.1);
+
+        // 创建 sceneGui 目录, 目录下包含 backGround 组件
+        var sceneGui = gui.addFolder('Scene');
+        sceneGui.addColor(controls,'backGround').onChange(function (e) {
+            webGlRenderer.setClearColor(e)
+        })
+
+        // 将渲染器添加到画布
+        $("#WebGL-output").append(webGlRenderer.domElement);
+
+        // 窗口大小改变触发的方法
+        function onWindowResize() {
+            // 改变相机的 aspect 为窗口的宽和长度之比
+            camera.aspect = window.innerWidth / window.innerHeight;
+            // 更新相机的投影矩阵
+            camera.updateProjectionMatrix();
+            // 重新设置渲染器的大小
+            webGlRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        // 添加事件监听
+        window.addEventListener('resize',onWindowResize,false);
+
+        // 初始化性能插件方法
+        function initStats() {
+            var stats = new Stats();
+
+            stats.setMode(0);// 0:现实fps, 1:ms
+
+            // 调整插件布局
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0px';
+            stats.domElement.style.top = '0px';
+            // 加入画布
+            $("#Stats-output").append(stats.domElement);
+            // 将初始化的插件返回
+            return stats;
+        }
+
+        // 渲染方法
+        function render() {
+            // 更新性能插件
+            stats.update();
+
+            // 立方体绕 x、y、z 轴旋转,速度由调试插件控制
+            cube.rotation.x += controls.rotationSpeed;
+            cube.rotation.y += controls.rotationSpeed;
+            cube.rotation.z += controls.rotationSpeed;
+
+            // 更新轨迹球控件的操作范围
+            trackballControls.handleResize();
+            // 更新物体位置
+            trackballControls.update();
+            // 开始渲染
+            webGlRenderer.render(scene, camera);
+        }
+        // 实现动画效果
+        function animate() {
+            requestAnimationFrame(animate);
+            render();
+        }
+        animate();
+    });
+
+</script>
+
+</body>
+</html>
